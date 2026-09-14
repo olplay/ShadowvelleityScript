@@ -723,4 +723,145 @@ Toggle("ESP", nil, function(on)
                 if pl ~= LP then
                     local ch = pl.Character
                     local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
-                    local hum
+                    local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+                    local shouldShow = false
+                    if ch and hrp and hum and hum.Health > 0 then
+                        if not S.EspTeamCheck then shouldShow = true
+                        elseif pl.Team ~= localTeam then shouldShow = true end
+                    end
+                    if shouldShow then
+                        if not S.EspHighlights[pl] or not S.EspHighlights[pl].Parent or S.EspHighlights[pl].Parent ~= ch then
+                            if S.EspHighlights[pl] then S.EspHighlights[pl]:Destroy() end
+                            local hl = Instance.new("Highlight")
+                            hl.Name = "ShadowESP"
+                            hl.FillColor = c3(CFG.ColorAccent)
+                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            hl.FillTransparency = 0.6
+                            hl.OutlineTransparency = 0.2
+                            hl.Parent = ch
+                            S.EspHighlights[pl] = hl
+                        end
+                    else
+                        if S.EspHighlights[pl] then
+                            S.EspHighlights[pl]:Destroy()
+                            S.EspHighlights[pl] = nil
+                        end
+                    end
+                end
+            end
+            for pl, hl in pairs(S.EspHighlights) do
+                if not pl.Parent or not pl.Character then
+                    hl:Destroy()
+                    S.EspHighlights[pl] = nil
+                end
+            end
+        end)
+    else
+        if S.EspConn then S.EspConn:Disconnect() S.EspConn = nil end
+        for pl, hl in pairs(S.EspHighlights) do hl:Destroy() end
+        S.EspHighlights = {}
+    end
+end)
+Toggle("ESP Team Check", nil, function(on) S.EspTeamCheck = on end)
+
+Section("Protection")
+Toggle("Anti-Grab", nil, function(on)
+    S.AntiGrab = on
+    if on then
+        if S.AntiGrabConn then S.AntiGrabConn:Disconnect() end
+        S.AntiGrabConn = WS.ChildAdded:Connect(function(obj)
+            if not S.AntiGrab then return end
+            task.wait(0.1)
+            if not obj.Parent then return end
+            local ch = LP.Character
+            if not ch then return end
+            for _, d in pairs(obj:GetDescendants()) do
+                if d:IsA("WeldConstraint") then
+                    local p1 = d.Part1
+                    local p2 = d.Part2
+                    if (p1 and p1:IsDescendantOf(ch)) or (p2 and p2:IsDescendantOf(ch)) then
+                        obj:Destroy()
+                        return
+                    end
+                end
+            end
+        end)
+    else
+        if S.AntiGrabConn then S.AntiGrabConn:Disconnect() S.AntiGrabConn = nil end
+    end
+end)
+
+Section("Values")
+Slider("NPC Range", 10, 300, CFG.NpcRange, function(v) CFG.NpcRange = v end)
+
+Section("Keybinds")
+table.insert(KeybindHandlers, KeybindAction("Menu Toggle", function() return CFG.MenuKey end, function(n) CFG.MenuKey = n end))
+table.insert(KeybindHandlers, KeybindAction("Teleport", function() return CFG.TPKey end, function(n) CFG.TPKey = n end))
+table.insert(KeybindHandlers, KeybindAction("Possess NPC", function() return CFG.PossessKey end, function(n) CFG.PossessKey = n end))
+table.insert(KeybindHandlers, KeybindAction("Rocket", function() return CFG.RocketKey end, function(n) CFG.RocketKey = n end))
+table.insert(KeybindHandlers, KeybindAction("Fly", function() return CFG.FlyKey end, function(n) CFG.FlyKey = n end))
+
+Section("Settings")
+local presets = {
+    {name = "Shadow (default)", bg = {18,18,24}, hd = {28,28,38}, ac = {180,80,255}},
+    {name = "Dark Blue", bg = {15,18,30}, hd = {25,32,55}, ac = {80,150,255}},
+    {name = "Red", bg = {30,15,15}, hd = {55,25,25}, ac = {230,70,70}},
+    {name = "Green", bg = {15,28,18}, hd = {25,50,32}, ac = {80,220,120}},
+}
+for _, p in ipairs(presets) do
+    Action(p.name, nil, function()
+        CFG.ColorBg = {p.bg[1], p.bg[2], p.bg[3]}
+        CFG.ColorHeader = {p.hd[1], p.hd[2], p.hd[3]}
+        CFG.ColorAccent = {p.ac[1], p.ac[2], p.ac[3]}
+        applyColors()
+        saveCfg()
+    end)
+end
+Slider("Bg R", 0, 255, CFG.ColorBg[1], function(v) CFG.ColorBg[1] = v; applyColors() end, true)
+Slider("Bg G", 0, 255, CFG.ColorBg[2], function(v) CFG.ColorBg[2] = v; applyColors() end, true)
+Slider("Bg B", 0, 255, CFG.ColorBg[3], function(v) CFG.ColorBg[3] = v; applyColors() end, true)
+Slider("Accent R", 0, 255, CFG.ColorAccent[1], function(v) CFG.ColorAccent[1] = v; applyColors() end, true)
+Slider("Accent G", 0, 255, CFG.ColorAccent[2], function(v) CFG.ColorAccent[2] = v; applyColors() end, true)
+Slider("Accent B", 0, 255, CFG.ColorAccent[3], function(v) CFG.ColorAccent[3] = v; applyColors() end, true)
+Slider("Transparency", 0, 100, math.floor(CFG.Transparency * 100), function(v)
+    CFG.Transparency = v / 100
+    applyColors()
+end)
+
+Section("Config")
+Action("Save Config", nil, saveCfg)
+Action("Reset Config", nil, function()
+    for k, v in pairs(DefaultCfg) do
+        if type(v) == "table" then CFG[k] = {v[1], v[2], v[3]}
+        else CFG[k] = v end
+    end
+    applyColors()
+    saveCfg()
+end)
+
+applyColors()
+refresh()
+
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    for _, handler in ipairs(KeybindHandlers) do
+        if handler(input) then return end
+    end
+    if input.KeyCode == KeyFromString(CFG.MenuKey) then
+        main.Visible = not main.Visible
+    elseif input.KeyCode == KeyFromString(CFG.TPKey) then
+        TP()
+    elseif input.KeyCode == KeyFromString(CFG.PossessKey) then
+        TogglePossess()
+    elseif input.KeyCode == KeyFromString(CFG.RocketKey) then
+        SpawnRocket()
+    elseif input.KeyCode == KeyFromString(CFG.FlyKey) then
+        FlyToggle(not S.FlyEnabled)
+    end
+end)
+
+gui.Destroying:Connect(function()
+    saveCfg()
+end)
+
+print("[Shadowvelleity] loaded.")
