@@ -1,7 +1,7 @@
 --[[
     SHADOWVELLEITY
     menu by shadow
-    Version 6.0
+    Version 8.0 (final)
 --]]
 
 local UIS = game:GetService("UserInputService")
@@ -108,7 +108,6 @@ local S = {
     FlyGyro = nil,
 }
 
--- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "Menu Shadowvelleity"
 gui.ResetOnSpawn = false
@@ -139,7 +138,6 @@ ms.Color = c3(CFG.ColorAccent)
 ms.Thickness = 1.5
 ms.Transparency = 0.3
 
--- Header
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 52)
 header.BackgroundColor3 = c3(CFG.ColorHeader)
@@ -183,7 +181,7 @@ local subtitle = Instance.new("TextLabel")
 subtitle.Size = UDim2.new(1, -120, 0, 12)
 subtitle.Position = UDim2.new(0, 16, 0, 30)
 subtitle.BackgroundTransparency = 1
-subtitle.Text = "menu by shadow · v6"
+subtitle.Text = "menu by shadow · v8"
 subtitle.TextColor3 = Color3.fromRGB(140, 140, 160)
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
 subtitle.Font = Enum.Font.Gotham
@@ -519,7 +517,6 @@ local function applyColors()
     end
 end
 
--- FUNCTIONS
 local function TP()
     local ch = LP.Character
     if not ch then return end
@@ -678,7 +675,7 @@ WS.ChildAdded:Connect(function(m)
         if m.Parent then return end
         if UIS:GetLastInputType() == Enum.UserInputType.MouseButton2 then
             bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bv.Velocity = WS.CurrentCamera.CFrame.LookVector * 245
+            bv.Velocity = WS.CurrentCamera.CFrame.LookVector * 350
             Debris:AddItem(bv, 1)
         else
             bv:Destroy()
@@ -686,7 +683,6 @@ WS.ChildAdded:Connect(function(m)
     end)
 end)
 
--- MENU (порядок разделов)
 Section("Movement")
 Toggle("Infinite Jump", "Space", function(on)
     if S.JumpConn then S.JumpConn:Disconnect() S.JumpConn = nil end
@@ -842,14 +838,31 @@ end)
 applyColors()
 refresh()
 
+-- KEY INPUT (финальный)
 UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
+
+    -- режим привязки
     for _, handler in ipairs(KeybindHandlers) do
         if handler(input) then return end
     end
+
+    -- LeftControl — закрыть меню
+    if input.KeyCode == Enum.KeyCode.LeftControl then
+        if main.Visible then
+            main.Visible = false
+        end
+        return
+    end
+
+    -- меню
     if input.KeyCode == KeyFromString(CFG.MenuKey) then
         main.Visible = not main.Visible
-    elseif input.KeyCode == KeyFromString(CFG.TPKey) then
+        return
+    end
+
+    -- действия
+    if input.KeyCode == KeyFromString(CFG.TPKey) then
         TP()
     elseif input.KeyCode == KeyFromString(CFG.PossessKey) then
         TogglePossess()
